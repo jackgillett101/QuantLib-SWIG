@@ -7,6 +7,7 @@
  Copyright (C) 2015 Thema Consulting SA
  Copyright (C) 2016 Gouthaman Balaraman
  Copyright (C) 2018, 2019 Matthias Lungwitz
+ Copyright (C) 2019 Pedro Coelho
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -280,7 +281,9 @@ using QuantLib::AnalyticEuropeanEngine;
 %shared_ptr(AnalyticEuropeanEngine)
 class AnalyticEuropeanEngine : public PricingEngine {
   public:
-    AnalyticEuropeanEngine(const ext::shared_ptr<GeneralizedBlackScholesProcess>&);
+    AnalyticEuropeanEngine(const ext::shared_ptr<GeneralizedBlackScholesProcess>& process);
+    AnalyticEuropeanEngine(const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
+                           const Handle<YieldTermStructure>& discountCurve);
 };
 
 
@@ -989,6 +992,7 @@ class FdmQuantoHelper {
 %{
 using QuantLib::LocalVolTermStructure;
 using QuantLib::FdBlackScholesVanillaEngine;
+using QuantLib::FdBlackScholesShoutEngine;
 using QuantLib::FdOrnsteinUhlenbeckVanillaEngine;
 using QuantLib::FdBatesVanillaEngine;
 using QuantLib::FdHestonVanillaEngine;
@@ -1038,10 +1042,19 @@ class FdBlackScholesVanillaEngine : public PricingEngine {
     #endif
 };
 
+%shared_ptr(FdBlackScholesShoutEngine)
+class FdBlackScholesShoutEngine : public PricingEngine {
+  public:
+    FdBlackScholesShoutEngine(
+        const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
+        Size tGrid = 100, Size xGrid = 100, Size dampingSteps = 0,
+        const FdmSchemeDesc& schemeDesc = FdmSchemeDesc::Douglas());
+};
+
 %shared_ptr(FdOrnsteinUhlenbeckVanillaEngine)
 class FdOrnsteinUhlenbeckVanillaEngine : public PricingEngine {
   public:
-    #if !defined(SWIGPYTHON)
+    #if !defined(SWIGJAVA) && !defined(SWIGCSHARP)
     %feature("kwargs") FdOrnsteinUhlenbeckVanillaEngine;
     #endif
     FdOrnsteinUhlenbeckVanillaEngine(
@@ -1150,6 +1163,66 @@ class FdSabrVanillaEngine : public PricingEngine {
             const FdmSchemeDesc& schemeDesc = FdmSchemeDesc::Hundsdorfer());
 };
 
+
+%{
+using QuantLib::FdHestonHullWhiteVanillaEngine;
+%}
+
+%shared_ptr(FdHestonHullWhiteVanillaEngine);
+class FdHestonHullWhiteVanillaEngine : public PricingEngine {
+  public:
+    #if !defined(SWIGJAVA) && !defined(SWIGCSHARP)
+    %feature("kwargs") FdHestonHullWhiteVanillaEngine;
+    #endif
+    FdHestonHullWhiteVanillaEngine(
+        const ext::shared_ptr<HestonModel>& model,
+        ext::shared_ptr<HullWhiteProcess> hwProcess,
+        Real corrEquityShortRate,
+        Size tGrid = 50,
+        Size xGrid = 100,
+        Size vGrid = 40,
+        Size rGrid = 20,
+        Size dampingSteps = 0,
+        bool controlVariate = true,
+        const FdmSchemeDesc& schemeDesc = FdmSchemeDesc::Hundsdorfer());    
+};
+
+
+%{
+using QuantLib::AnalyticHestonHullWhiteEngine;
+%}
+
+%shared_ptr(AnalyticHestonHullWhiteEngine);
+class AnalyticHestonHullWhiteEngine : public PricingEngine {
+  public:
+    AnalyticHestonHullWhiteEngine(const ext::shared_ptr<HestonModel>& hestonModel,
+                                  ext::shared_ptr<HullWhite> hullWhiteModel,
+                                  Size integrationOrder = 144);
+
+    AnalyticHestonHullWhiteEngine(const ext::shared_ptr<HestonModel>& model,
+                                  ext::shared_ptr<HullWhite> hullWhiteModel,
+                                  Real relTolerance,
+                                  Size maxEvaluations);
+};
+
+
+%{
+using QuantLib::AnalyticH1HWEngine;
+%}
+
+%shared_ptr(AnalyticH1HWEngine);
+class AnalyticH1HWEngine : public PricingEngine {
+  public:
+    AnalyticH1HWEngine(const ext::shared_ptr<HestonModel>& hestonModel,
+                       const ext::shared_ptr<HullWhite>& hullWhiteModel,
+                       Real rhoSr, Size integrationOrder = 144);
+
+    AnalyticH1HWEngine(const ext::shared_ptr<HestonModel>& model,
+                       const ext::shared_ptr<HullWhite>& hullWhiteModel,
+                       Real rhoSr,
+                       Real relTolerance,
+                       Size maxEvaluations);
+};
 
 
 %{
